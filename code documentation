@@ -1,0 +1,77 @@
+import cv2
+
+# Load pre-trained models for human and basketball detection
+human_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + r"\haarcascade_fullbody.xml")
+basketball_cascade = cv2.CascadeClassifier(r"D:\cascade.xml")  # Provide the correct path to your pre-trained model
+
+# Load the input video
+video_path = r"C:\Users\HP\Desktop\WHATSAAP ASSIGNMENT.mp4"
+cap = cv2.VideoCapture(video_path)
+
+# Check if the video file is opened successfully
+if not cap.isOpened():
+    print("Error: Unable to open video file.")
+    exit()
+
+# Variables for dribbling analysis
+dribble_count = 0
+prev_basketball_pos = None
+is_bouncing = False
+
+while True:
+    # Read a frame from the video
+    ret, frame = cap.read()
+
+    # If the frame was not read successfully, break the loop
+    if not ret:
+        break
+
+    # Convert frame to grayscale for cascade classifiers
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    # Detect humans in the frame
+    humans = human_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(50, 100))  # Adjust minSize
+
+    # Detect basketballs in the frame
+    basketballs = basketball_cascade.detectMultiScale(gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+
+    # Loop through detected humans
+    for (x, y, w, h) in humans:
+        # Draw bounding box around humans
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        cv2.putText(frame, 'Person', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+
+    # Loop through detected basketballs
+    for (x, y, w, h) in basketballs:
+        # Draw bounding box around basketballs
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(frame, 'Basketball', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+
+        # Analyze dribbling action
+        basketball_pos = (x + w // 2, y + h // 2)
+        if prev_basketball_pos:
+            # Calculate vertical distance between current and previous basketball position
+            vertical_dist = prev_basketball_pos[1] - basketball_pos[1]
+            if vertical_dist > 20:  # Threshold for upward motion (adjust as needed)
+                if not is_bouncing:
+                    dribble_count += 1
+                    is_bouncing = True
+            else:
+                is_bouncing = False
+
+        # Update previous basketball position
+        prev_basketball_pos = basketball_pos
+
+    # Display the dribble count on the frame
+    cv2.putText(frame, f'Dribbles: {dribble_count}', (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+    # Display the frame
+    cv2.imshow('Basketball Dribble Analysis', frame)
+
+    # Check for key press; if 'q' is pressed, exit the loop
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release the video capture object and close all OpenCV windows
+cap.release()
+cv2.destroyAllWindows()
