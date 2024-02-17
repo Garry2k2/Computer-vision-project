@@ -38,6 +38,7 @@ Converted images to the HSV color space for better color analysis.
 Applied thresholding to segment specific colors.
 
 Challenges Faced:
+
 Training the cascades:
 While training the cascade, it required a substantial amount of time to create the final output, 
 demanding extensive computational resources and patience throughout the iterative optimization process.
